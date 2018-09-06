@@ -8,13 +8,17 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.mongodb.stitch.android.core.Stitch;
 import com.mongodb.stitch.android.core.StitchAppClient;
+import com.mongodb.stitch.android.core.auth.StitchAuth;
+import com.mongodb.stitch.android.core.auth.StitchAuthListener;
 import com.mongodb.stitch.android.core.auth.StitchUser;
 import com.mongodb.stitch.android.services.mongodb.remote.RemoteMongoClient;
 import com.mongodb.stitch.android.services.mongodb.remote.RemoteMongoCollection;
 import com.mongodb.stitch.core.StitchAppClientConfiguration;
 import com.mongodb.stitch.core.auth.providers.anonymous.AnonymousCredential;
 
+import com.mongodb.stitch.core.auth.providers.userpassword.UserPasswordCredential;
 import com.mongodb.todosample.R;
+import com.mongodb.todosample.Utils;
 import com.mongodb.todosample.model.objects.TodoItem;
 
 import org.bson.Document;
@@ -33,12 +37,11 @@ import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
  * expose logic that the Activity (controller) needs to see. For that reason, it does not publicly
  * expose any Stitch-specific classes.
  */
-public class TodoList {
+public class TodoList implements StitchAuthListener {
   public static final String TODO_LIST_DATABASE = "todo";
   public static final String TODO_LIST_COLLECTION = "items";
 
   // Stitch specific fields
-  private String                          _stitchClientAppId;
   private StitchAppClient                 _stitchClient;
   private RemoteMongoCollection<TodoItem> _remoteTodoListCollection;
 
@@ -50,7 +53,6 @@ public class TodoList {
 
 
   public TodoList(final Context context) {
-    this._stitchClientAppId = context.getString(R.string.todo_list_stitch_client_app_id);
     this._initializeStitch(context);
     this._cachedList = new ArrayList<>();
     this._listeners = new ArrayList<>();
@@ -61,28 +63,12 @@ public class TodoList {
    * if the client has never been initialized before.
    */
   private synchronized void _initializeStitch(Context context) {
-    Stitch.initialize(context);
+    _stitchClient = Utils.getStitchAppClient(context);
 
-    if (!Stitch.hasAppClient(_stitchClientAppId)) {
-
-      // Set up codecs that will allow us to create a MongoDB collection of TodoItem objects.
-      CodecProvider todoListCodecProvider = PojoCodecProvider
-              .builder()
-              .register("com.mongodb.todosample.model.objects")
-              .build();
-
-      // Initialize the Stitch app client for the first time.
-      Stitch.initializeAppClient(
-              _stitchClientAppId,
-              new StitchAppClientConfiguration.Builder()
-                .withCodecRegistry(fromProviders(todoListCodecProvider))
-                .build()
-              );
-    }
-
-    _stitchClient = Stitch.getAppClient(_stitchClientAppId);
+    _stitchClient.getAuth().addAuthListener(this);
     _remoteTodoListCollection = _stitchClient
-            .getServiceClient(RemoteMongoClient.factory, "mongodb-atlas")
+//            .getServiceClient(RemoteMongoClient.factory, "mongodb-atlas")
+            .getServiceClient(RemoteMongoClient.factory, "mongodb1")
             .getDatabase(TODO_LIST_DATABASE)
             .getCollection(TODO_LIST_COLLECTION, TodoItem.class);
   }
@@ -190,6 +176,25 @@ public class TodoList {
   }
 
   /**
+   * onAuthEvent is called any time a notable event regarding authentication happens.
+   * Some of these events are:
+   * - When a user logs in.
+   * - When a user logs out.
+   * - When a user is linked to another identity.
+   * - When a listener is registered. This is to handle the case where during registration
+   * an event happens that the registerer would otherwise miss out on.
+   *
+   * @param auth the instance of {@link StitchAuth} where the event happened. It should be used to
+   *             infer the current state of authentication.
+   */
+  @Override
+  public void onAuthEvent(StitchAuth auth) {
+    if (auth.isLoggedIn()) {
+      TodoList.this.refresh();
+    }
+  }
+
+  /**
    * A listener interface that can be implemented to react to changes made to the task list,
    * remotely or otherwise. In the future, this listener could be called whenever an update to
    * the list is recognized via MongoDB Stitch Mobile Sync
@@ -253,27 +258,12 @@ public class TodoList {
   }
 
   /**
-   * Logs into this TodoList anonymously, via Stitch under the hood.
-   * @return
-   */
-  public Task<Void> loginAnonymously() {
-    if(_stitchClient.getAuth().isLoggedIn()) {
-      return Tasks.forException(new IllegalStateException("Must be logged out first."));
-    }
-
-    return _executeThenRefresh(
-            _stitchClient.getAuth().loginWithCredential(new AnonymousCredential()));
-  }
-
-  // You could now add login methods for other authentication providers, abstracting away the Stit
-
-  /**
    * "Logs out" this task list by clearing the cached list of tasks, triggering a logout in Stitch,
    * and notifying the listeners of the
    */
-  public void logout() {
+  public Task<Void> logout() {
     this._cachedList.clear();
-    this._stitchClient.getAuth().logout().continueWith(new Continuation<Void, Void>() {
+    return this._stitchClient.getAuth().logout().continueWith(new Continuation<Void, Void>() {
       @Override
       public Void then(@NonNull Task<Void> task) {
         TodoList.this._notifyListeners();

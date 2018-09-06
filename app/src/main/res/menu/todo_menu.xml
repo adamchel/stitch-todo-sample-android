@@ -7,11 +7,20 @@
         android:title="@string/add_item_action_label"
         app:showAsAction="always" />
     <item
+        android:id="@+id/refresh_items_action"
+        android:title="@string/refresh_items_label"
+        app:showAsAction="always"
+        />
+    <item
         android:id="@+id/clear_checked_action"
         android:title="@string/clear_checked_action_label"
         app:showAsAction="ifRoom" />
     <item
         android:id="@+id/clear_all_action"
         android:title="@string/clear_all_action_label"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/logout_action"
+        android:title="@string/logout_action_label"
         app:showAsAction="never" />
 </menu>

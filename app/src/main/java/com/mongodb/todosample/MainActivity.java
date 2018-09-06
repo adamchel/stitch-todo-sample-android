@@ -1,6 +1,8 @@
 package com.mongodb.todosample;
 
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -12,6 +14,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
 import com.mongodb.todosample.adapters.TodoListAdapter;
 import com.mongodb.todosample.model.TodoList;
 import com.mongodb.todosample.model.objects.TodoItem;
@@ -41,12 +46,7 @@ public class MainActivity extends AppCompatActivity {
     todoRecyclerView.setAdapter(todoListAdapter);
 
     if(!_todoList.isLoggedIn()) {
-      // TODO: In the future, you could attach the model's login functionality to a login page.
-      Utils.displayToastIfTaskFails(
-              this,
-              _todoList.loginAnonymously(),
-              "Failed to login. Try again later."
-      );
+      _showAuthActivity();
     } else {
       Utils.displayToastIfTaskFails(
               this,
@@ -71,10 +71,33 @@ public class MainActivity extends AppCompatActivity {
         _showAddItemDialog();
         return true;
       case R.id.clear_checked_action:
-        _todoList.clearCheckedItems();
+        Utils.displayToastIfTaskFails(
+                this,
+                _todoList.clearCheckedItems(),
+                "Failed to clear checked items. Try again later."
+        );
         return true;
       case R.id.clear_all_action:
-        _todoList.clearAllItems();
+        Utils.displayToastIfTaskFails(
+                this,
+                _todoList.clearAllItems(),
+                "Failed to clear items. Try again later."
+        );
+        return true;
+      case R.id.refresh_items_action:
+        Utils.displayToastIfTaskFails(
+                this,
+                _todoList.refresh(),
+                "Failed to refresh items. Try again later."
+        );
+        return true;
+      case R.id.logout_action:
+        _todoList.logout().addOnCompleteListener(new OnCompleteListener<Void>() {
+          @Override
+          public void onComplete(@NonNull Task<Void> task) {
+            _showAuthActivity();
+          }
+        });
         return true;
       default:
         return super.onOptionsItemSelected(item);
@@ -113,5 +136,10 @@ public class MainActivity extends AppCompatActivity {
             });
 
     builder.show();
+  }
+
+  private void _showAuthActivity() {
+    Intent intent = new Intent(this, LoginActivity.class);
+    startActivity(intent);
   }
 }
