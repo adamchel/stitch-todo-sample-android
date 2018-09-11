@@ -12,6 +12,12 @@ import com.mongodb.stitch.core.auth.providers.anonymous.AnonymousCredential;
 import com.mongodb.stitch.core.auth.providers.userpassword.UserPasswordCredential;
 import com.mongodb.todosample.Utils;
 
+/**
+ * This is a model for the Login activity. The _stitchClient that exists here is shared with all
+ * other Stitch clients for the same app, so when this authenticator authenticates, the other model
+ * (TodoList) will become authenticated. We can notify the other class that it became authenticated
+ * by registering it as StitchAuthListener.
+ */
 public class Authenticator {
 
   // Stitch specific fields

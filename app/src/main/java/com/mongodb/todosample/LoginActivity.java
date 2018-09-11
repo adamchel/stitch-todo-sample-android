@@ -1,7 +1,6 @@
 package com.mongodb.todosample;
 
 import android.app.ProgressDialog;
-import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -14,13 +13,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.mongodb.todosample.model.Authenticator;
 
 public class LoginActivity extends AppCompatActivity {
   private static final String TAG = LoginActivity.class.getName();
-  private static final int REQUEST_SIGNUP = 0;
 
   private Authenticator _authenticator;
 
@@ -28,7 +25,6 @@ public class LoginActivity extends AppCompatActivity {
   private EditText _passwordText;
   private Button _loginButton;
   private TextView _anonLoginLink;
-
 
   @Override
   public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -46,24 +42,14 @@ public class LoginActivity extends AppCompatActivity {
     _loginButton.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View v) {
-        login();
+        _login();
       }
     });
 
     _anonLoginLink.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View v) {
-        Utils.displayToastIfTaskFails(
-                LoginActivity.this,
-                _authenticator.loginAnonymously(),
-                "Failed to log in anonymously, try again later."
-        ).addOnSuccessListener(new OnSuccessListener<Void>() {
-          @Override
-          public void onSuccess(Void aVoid) {
-            onLoginSuccess();
-          }
-        });
-
+        _loginAnonymously();
       }
     });
   }
@@ -74,11 +60,33 @@ public class LoginActivity extends AppCompatActivity {
     moveTaskToBack(true);
   }
 
-  public void login() {
+  private void _loginAnonymously() {
+    Log.d(TAG, "Login anonymously");
+    _anonLoginLink.setEnabled(false);
+
+    final ProgressDialog progressDialog = new ProgressDialog(LoginActivity.this);
+    progressDialog.setIndeterminate(true);
+    progressDialog.setMessage("Authenticating...");
+    progressDialog.show();
+
+    _authenticator.loginAnonymously().addOnCompleteListener(new OnCompleteListener<Void>() {
+      @Override
+      public void onComplete(@NonNull Task<Void> task) {
+        progressDialog.dismiss();
+        if (task.isSuccessful()) {
+          _onLoginSuccess();
+        } else {
+          _onLoginFailed(task.getException().getMessage());
+        }
+      }
+    });
+  }
+
+  private void _login() {
     Log.d(TAG, "Login");
 
-    if (!validate()) {
-      onLoginFailed();
+    if (!_validate()) {
+      _onLoginFailed();
       return;
     }
 
@@ -97,47 +105,25 @@ public class LoginActivity extends AppCompatActivity {
       public void onComplete(@NonNull Task<Void> task) {
         progressDialog.dismiss();
         if (task.isSuccessful()) {
-          onLoginSuccess();
+          _onLoginSuccess();
         } else {
-          onLoginFailed(task.getException().getMessage());
+          _onLoginFailed(task.getException().getMessage());
         }
       }
     });
 
-//
-//    new android.os.Handler().postDelayed(
-//            new Runnable() {
-//              public void run() {
-//                // On complete call either onLoginSuccess or onLoginFailed
-//                onLoginSuccess();
-//                // onLoginFailed();
-//                progressDialog.dismiss();
-//              }
-//            }, 3000);
   }
 
-  @Override
-  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-    if (requestCode == REQUEST_SIGNUP) {
-      if (resultCode == RESULT_OK) {
-
-        // TODO: Implement successful signup logic here
-        // By default we just finish the Activity and log them in automatically
-        this.finish();
-      }
-    }
-  }
-
-  public void onLoginSuccess() {
+  private void _onLoginSuccess() {
     _loginButton.setEnabled(true);
     finish();
   }
 
-  public void onLoginFailed() {
-    onLoginFailed(null);
+  private void _onLoginFailed() {
+    _onLoginFailed(null);
   }
 
-  public void onLoginFailed(final String message) {
+  private void _onLoginFailed(final String message) {
     if (message == null || message == "") {
       Toast.makeText(getBaseContext(), "Login failed", Toast.LENGTH_LONG).show();
     } else {
@@ -147,7 +133,7 @@ public class LoginActivity extends AppCompatActivity {
     _loginButton.setEnabled(true);
   }
 
-  public boolean validate() {
+  private boolean _validate() {
     boolean valid = true;
 
     String email = _emailText.getText().toString();

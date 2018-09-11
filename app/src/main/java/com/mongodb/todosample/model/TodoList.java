@@ -51,7 +51,6 @@ public class TodoList implements StitchAuthListener {
   // in the future, there might be also be a local MongoDB collection, or synced collection,
   // and this class would be responsible for keeping a local and remote collection in sync.
 
-
   public TodoList(final Context context) {
     this._initializeStitch(context);
     this._cachedList = new ArrayList<>();
@@ -67,8 +66,7 @@ public class TodoList implements StitchAuthListener {
 
     _stitchClient.getAuth().addAuthListener(this);
     _remoteTodoListCollection = _stitchClient
-//            .getServiceClient(RemoteMongoClient.factory, "mongodb-atlas")
-            .getServiceClient(RemoteMongoClient.factory, "mongodb1")
+            .getServiceClient(RemoteMongoClient.factory, "mongodb-atlas")
             .getDatabase(TODO_LIST_DATABASE)
             .getCollection(TODO_LIST_COLLECTION, TodoItem.class);
   }

@@ -59,7 +59,6 @@ public class Utils {
               stitchClientAppId,
               new StitchAppClientConfiguration.Builder()
                       .withCodecRegistry(fromProviders(todoListCodecProvider))
-                      .withBaseUrl("https://c89dff89.ngrok.io")
                       .build()
       );
     }

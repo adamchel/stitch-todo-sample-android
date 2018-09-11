@@ -6,6 +6,5 @@
     <string name="logout_action_label">Logout</string>
     <string name="edit_item_hint">Edit Item</string>
     <string name="refresh_items_label">Refresh</string>
-    <string name="todo_list_stitch_client_app_id">stitch-todo-local-rwlmi</string>
-    <!--<string name="todo_list_stitch_client_app_id">stitch-tests-js-sdk-jntlj</string>-->
+    <string name="todo_list_stitch_client_app_id">your-client-app-id</string>
 </resources>
